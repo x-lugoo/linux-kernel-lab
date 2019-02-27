@@ -26,8 +26,6 @@ static int __init my_init(void)
         if (!m2)
                 return -ENOMEM;
 
-        INIT_LIST_HEAD(&m1->clist);
-        INIT_LIST_HEAD(&m2->clist);
         m1->val = 20; 
         m2->val = 27; 
         list_add(&m1->clist, &my_list);
