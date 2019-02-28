@@ -1,4 +1,4 @@
-obj-m   += list.o taints.o
+obj-m   += wait_event.o
 
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
