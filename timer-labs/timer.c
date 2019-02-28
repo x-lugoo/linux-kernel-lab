@@ -16,24 +16,18 @@ static struct my_dat {
 
 static void thr_fun(struct timer_list *timer)
 {
-
-	struct my_dat *data = container_of(timer, struct my_dat, tlist);
-	while (status) {
-		printk(KERN_INFO "%d\n", data->num);
-		msleep(1);
-	};
+	struct my_dat *data = from_timer(data, timer, tlist);
+	printk(KERN_INFO "starting timer %d \n", data->num);
 }
 
 
 static int __init my_init(void)
 {
+	my_data.num = 89;
 
-	my_data.num = 99000;
-
-	//init_timer(&my_data.tlist);
-	my_timer.function = thr_fun;
-	my_timer.expires = jiffies + 10000;
-	add_timer(&my_timer);
+        timer_setup(&my_data.tlist, thr_fun, 0);
+	my_data.tlist.expires = jiffies + 4 * HZ;
+	add_timer(&my_data.tlist);
 	printk(KERN_INFO "add timer\n");
 	return 0;
 }
