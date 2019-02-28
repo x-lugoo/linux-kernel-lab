@@ -1,4 +1,4 @@
-obj-m   += tasklet.o kthread_run.o
+obj-m   += tasklet.o kthread_run.o work_queue.o
 
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
