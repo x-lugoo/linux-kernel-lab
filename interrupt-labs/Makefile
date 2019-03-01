@@ -1,4 +1,4 @@
-obj-m   += interrupt_tasklet.o
+obj-m   += interrupt_workqueue.o
 
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
