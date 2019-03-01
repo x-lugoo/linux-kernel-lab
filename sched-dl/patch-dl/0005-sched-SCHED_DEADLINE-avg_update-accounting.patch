@@ -1,0 +1,31 @@
+From 0097b02360a19d22c9ffa3953db0b10e7053aa46 Mon Sep 17 00:00:00 2001
+From: Dario Faggioli <raistlin@linux.it>
+Date: Wed, 11 Apr 2012 11:19:53 +0200
+Subject: [PATCH 05/14] sched: SCHED_DEADLINE avg_update accounting.
+
+Make the core scheduler and load balancer aware of the load
+produced by -deadline tasks, by updating the moving average
+like for sched_rt.
+
+Signed-off-by: Dario Faggioli <raistlin@linux.it>
+Signed-off-by: Juri Lelli <juri.lelli@gmail.com>
+---
+ kernel/sched/deadline.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/kernel/sched/deadline.c b/kernel/sched/deadline.c
+index 18a73b4..2cd5a22 100644
+--- a/kernel/sched/deadline.c
++++ b/kernel/sched/deadline.c
+@@ -562,6 +562,8 @@ static void update_curr_dl(struct rq *rq)
+ 	curr->se.exec_start = rq_clock_task(rq);
+ 	cpuacct_charge(curr, delta_exec);
+ 
++	sched_rt_avg_update(rq, delta_exec);
++
+ 	dl_se->runtime -= delta_exec;
+ 	if (dl_runtime_exceeded(rq, dl_se)) {
+ 		__dequeue_task_dl(rq, curr, 0);
+-- 
+2.7.4
+

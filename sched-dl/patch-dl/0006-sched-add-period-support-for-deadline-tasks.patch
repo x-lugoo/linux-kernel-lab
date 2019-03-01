@@ -1,0 +1,124 @@
+From 9c62779c7f74dc2f7dc9eba2f42c14c9ce84954e Mon Sep 17 00:00:00 2001
+From: Harald Gustafsson <harald.gustafsson@ericsson.com>
+Date: Tue, 22 May 2012 17:35:49 +0200
+Subject: [PATCH 06/14] sched: add period support for -deadline tasks.
+
+Make it possible to specify a period (different or equal than deadline) for
+-deadline tasks. Relative deadlines (D_i) are used on task arrivals to generate
+new scheduling (absolute) deadlines as "d = t + D_i", and periods (P_i) to
+postpone the scheduling deadlines as "d = d + P_i" when the budget is zero.
+This is in general useful to model (and schedule) tasks that have slow
+activation rates (long periods), but have to be scheduled soon once activated
+(short deadlines).
+
+Signed-off-by: Harald Gustafsson <harald.gustafsson@ericsson.com>
+Signed-off-by: Dario Faggioli <raistlin@linux.it>
+Signed-off-by: Juri Lelli <juri.lelli@gmail.com>
+---
+ include/linux/sched.h   |  1 +
+ kernel/sched/core.c     | 15 ++++++++++++---
+ kernel/sched/deadline.c | 10 +++++++---
+ 3 files changed, 20 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 59ea0da..90517bc 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1068,6 +1068,7 @@ struct sched_dl_entity {
+ 	 */
+ 	u64 dl_runtime;		/* maximum runtime for each instance	*/
+ 	u64 dl_deadline;	/* relative deadline of each instance	*/
++	u64 dl_period;		/* separation of two instances (period) */
+ 
+ 	/*
+ 	 * Actual scheduling parameters. Initialized with the values above,
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 2077aae..7838eca 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1617,6 +1617,7 @@ static void __sched_fork(struct task_struct *p)
+ 	hrtimer_init(&p->dl.dl_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+ 	p->dl.dl_runtime = p->dl.runtime = 0;
+ 	p->dl.dl_deadline = p->dl.deadline = 0;
++	p->dl.dl_period = 0;
+ 	p->dl.flags = 0;
+ 
+ 	INIT_LIST_HEAD(&p->rt.run_list);
+@@ -3304,6 +3305,10 @@ __setparam_dl(struct task_struct *p, const struct sched_param2 *param2)
+ 	init_dl_task_timer(dl_se);
+ 	dl_se->dl_runtime = param2->sched_runtime;
+ 	dl_se->dl_deadline = param2->sched_deadline;
++	if (param2->sched_period != 0)
++		dl_se->dl_period = param2->sched_period;
++	else
++		dl_se->dl_period = dl_se->dl_deadline;
+ 	dl_se->flags = param2->sched_flags;
+ 	dl_se->dl_throttled = 0;
+ 	dl_se->dl_new = 1;
+@@ -3317,19 +3322,23 @@ __getparam_dl(struct task_struct *p, struct sched_param2 *param2)
+ 	param2->sched_priority = p->rt_priority;
+ 	param2->sched_runtime = dl_se->dl_runtime;
+ 	param2->sched_deadline = dl_se->dl_deadline;
++	param2->sched_period = dl_se->dl_period;
+ 	param2->sched_flags = dl_se->flags;
+ }
+ 
+ /*
+  * This function validates the new parameters of a -deadline task.
+  * We ask for the deadline not being zero, and greater or equal
+- * than the runtime.
++ * than the runtime, as well as the period of being zero or
++ * greater than deadline.
+  */
+ static bool
+ __checkparam_dl(const struct sched_param2 *prm)
+ {
+-	return prm && (&prm->sched_deadline) != 0 &&
+-	       (s64)(&prm->sched_deadline - &prm->sched_runtime) >= 0;
++	return prm && prm->sched_deadline != 0 &&
++	       (prm->sched_period == 0 ||
++		(s64)(prm->sched_period - prm->sched_deadline) >= 0) &&
++	       (s64)(prm->sched_deadline - prm->sched_runtime) >= 0;
+ }
+ 
+ /*
+diff --git a/kernel/sched/deadline.c b/kernel/sched/deadline.c
+index 2cd5a22..3e0e6e3 100644
+--- a/kernel/sched/deadline.c
++++ b/kernel/sched/deadline.c
+@@ -289,7 +289,7 @@ static void replenish_dl_entity(struct sched_dl_entity *dl_se)
+ 	 * arbitrary large.
+ 	 */
+ 	while (dl_se->runtime <= 0) {
+-		dl_se->deadline += dl_se->dl_deadline;
++		dl_se->deadline += dl_se->dl_period;
+ 		dl_se->runtime += dl_se->dl_runtime;
+ 	}
+ 
+@@ -329,9 +329,13 @@ static void replenish_dl_entity(struct sched_dl_entity *dl_se)
+  *
+  * This function returns true if:
+  *
+- *   runtime / (deadline - t) > dl_runtime / dl_deadline ,
++ *   runtime / (deadline - t) > dl_runtime / dl_period ,
+  *
+  * IOW we can't recycle current parameters.
++ *
++ * Notice that the bandwidth check is done against the period. For
++ * task with deadline equal to period this is the same of using
++ * dl_deadline instead of dl_period in the equation above.
+  */
+ static bool dl_entity_overflow(struct sched_dl_entity *dl_se, u64 t)
+ {
+@@ -355,7 +359,7 @@ static bool dl_entity_overflow(struct sched_dl_entity *dl_se, u64 t)
+ 	 * of anything below microseconds resolution is actually fiction
+ 	 * (but still we want to give the user that illusion >;).
+ 	 */
+-	left = (dl_se->dl_deadline >> 10) * (dl_se->runtime >> 10);
++	left = (dl_se->dl_period >> 10) * (dl_se->runtime >> 10);
+ 	right = ((dl_se->deadline - t) >> 10) * (dl_se->dl_runtime >> 10);
+ 
+ 	return dl_time_before(right, left);
+-- 
+2.7.4
+
