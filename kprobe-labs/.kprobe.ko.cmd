@@ -1,0 +1,1 @@
+cmd_/home/jeff/git/linux-kernel-lab/kprobe-labs/kprobe.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/jeff/git/linux-kernel-lab/kprobe-labs/kprobe.ko /home/jeff/git/linux-kernel-lab/kprobe-labs/kprobe.o /home/jeff/git/linux-kernel-lab/kprobe-labs/kprobe.mod.o ;  true
