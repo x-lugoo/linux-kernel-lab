@@ -1,4 +1,4 @@
-obj-m   += timer.o
+obj-m   += hrtimer.o
 
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
