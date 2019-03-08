@@ -1,9 +1,7 @@
 ALL: default main
-obj-m   += mmap.o
-
+obj-m   += rammap.o
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
-
 main:
 	gcc main.c -o main
 default:
