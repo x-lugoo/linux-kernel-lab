@@ -1,4 +1,4 @@
-obj-m   += mod_kmem_cache.o
+obj-m   += vm_area.o
 
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
