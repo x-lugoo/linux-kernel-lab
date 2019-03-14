@@ -1,4 +1,4 @@
-obj-m   += rbtree.o
+obj-m   += hlist.o
 
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
