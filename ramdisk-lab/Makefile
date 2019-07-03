@@ -1,6 +1,7 @@
-obj-m   += ramhd_req.o
+obj-m   += sample_blk.o
 
-KDIR    := /lib/modules/$(shell uname -r)/build
+#KDIR    := /lib/modules/$(shell uname -r)/build
+KDIR    := /root/jeff/git/linux-next
 PWD     := $(shell pwd)
 
 default:
