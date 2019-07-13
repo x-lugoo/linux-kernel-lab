@@ -6,6 +6,7 @@ PWD     := $(shell pwd)
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 	gcc ./jeff-mmap.c -o jeff-mmap
+	gcc ./mmap-get-root.c -o ./mmap-get-root
 
 clean:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) clean
